@@ -1,0 +1,382 @@
+<aura:component controller="BookingController"  access="global"  >
+    
+    <lightning:overlayLibrary aura:id="overlayLib"/>
+    <aura:attribute name="plotId" type="String"/>
+    <aura:attribute name="projectName" type="String"/>
+    <aura:attribute name="leadId" type="String"/>
+    <aura:attribute name="projectRecord" type="Project__c" access="global"/>
+    <aura:attribute name="PlotRecord" type="Plot__c" access="global"/>
+    <aura:attribute name="recordId" type="Id" />
+    <aura:attribute name="spinner" type="boolean" default="false"/>
+    <aura:attribute name="today" type="Date" />
+    <aura:attribute name="isNRI1" type="Boolean" default="false"/>
+    <aura:attribute name="isNRI2" type="Boolean" default="false"/>
+    <aura:attribute name="showTrue" type="Boolean" default="false"/>
+    <aura:attribute name="showTrue2" type="Boolean" default="false"/>
+    <aura:attribute name="showNextCmp" type="boolean" default="false" />
+    <aura:attribute name="checkBookedOrNot" type="boolean" default="false" />
+    <aura:attribute name="IsCustomerReferral" type="boolean" default="false"/>
+    <aura:attribute name="IsEmployeeReferral" type="boolean" default="false"/>
+    <aura:attribute name="buttonDisable" type="boolean" default="false"/>
+    <aura:attribute name="is2ndAppRequired" type="boolean" default="false"/>
+    <aura:attribute name="paymentScheduleFileName" type="String" default=""/>
+    <aura:attribute name="paymentScheduleFileBase64" type="String" default=""/>
+    <!-- Channel Partner on Booking : added 22-09-2026 starts -->
+    <!-- Made mandatory 26-09-2026 : no default selection, validated in handleSubmit -->
+    <aura:attribute name="channelPartnerOptions" type="List" default="[]"/>
+    <aura:attribute name="byChannelPartner" type="String" default=""/>
+    <aura:attribute name="channelPartnerCode" type="String" default=""/>
+    <aura:attribute name="channelPartnerName" type="String" default=""/>
+    <aura:attribute name="verifiedChannelPartnerCode" type="String" default=""/>
+    <aura:attribute name="channelPartnerError" type="String" default=""/>
+    <aura:attribute name="isVerifyingChannelPartner" type="Boolean" default="false"/>
+    <!-- Channel Partner on Booking : added 22-09-2026 ends -->
+    
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"></aura:handler>
+    <aura:html tag="style">
+        .slds-modal__container{ 
+        max-width: 80rem !important;
+        width:80% !important;
+        } 
+        
+        .cuf-content {
+        padding: 0 0rem !important;
+        }
+        .slds-p-around--medium {
+        padding: 0rem !important;
+        }
+        .slds-modal__content{
+        
+        height:unset !important;
+        max-height:unset !important;
+        }
+        
+        .closeIcon{
+        display:none;
+        }
+        .slds-col{
+        margin-left:5px;
+        }
+    </aura:html >
+    
+    <aura:if isTrue="{!v.showNextCmp}"> 
+        <div class="slds-grid slds-wrap slds-grid_pull-padded-x-medium">
+            <lightning:recordEditForm recordTypeId="" aura:id="myform" objectApiName="Booking__c" onsuccess="{!c.handleSuccess}" onsubmit="{!c.handleSubmit}" onerror="{!c.handleError}">
+                <h3 class="slds-section__title slds-theme_shade">
+                    <span class="slds-truncate slds-p-horizontal_small" title="Section Title">Plot Details</span>
+                </h3><br/>
+                <div class="slds-grid slds-wrap slds-grid_pull-padded-x-medium">
+                    <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                        <lightning:input value="{!v.PlotRecord.Name}"  label="Plot Number" disabled="true"/>
+                    </div>
+                    <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                        <lightning:input value="{!v.PlotRecord.Unit_Facing_Direction__c}" label="Unit Facing Direction" disabled="true" />
+                    </div>
+                    <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                        <lightning:input value="{!v.PlotRecord.Plot_Land_Area__c}" label="Plot Area(Sq.ft)" disabled="true" />
+                    </div>
+                    <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                        <lightning:input value="{!v.PlotRecord.Plot_Area_in_Cent__c}" label="Plot Area (Cent)" disabled="true" />
+                    </div>
+                    <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                        <lightning:input value="{!v.PlotRecord.Basic_Price__c}" label="Basic Price" disabled="true" />
+                    </div>
+                    <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                        <lightning:input value="{!v.PlotRecord.Total_Cost__c}" label="Total Cost of Flat" disabled="true" />
+                    </div>
+                    <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                        <!--lightning:inputField fieldName="Booking_Amount1__c" value="{!v.PlotRecord.Booking_Amount__c}" disabled="true"/-->
+                        <!-- added by karthik 2504 -->
+                        <aura:if isTrue="{!v.PlotRecord.EWS_Plot__c}">
+                            <!-- If EWS_Plot__c is true, set value to Booking_Amount_EWS__c -->
+                            <lightning:inputField fieldName="Booking_Amount1__c" class="custom-input-field" variant="label-stacked" value="{!v.PlotRecord.Booking_Amnt_EWS__c}" disabled="true"/>
+                        </aura:if>
+                        <aura:if isTrue="{!not(v.PlotRecord.EWS_Plot__c)}">
+                            <!-- If EWS_Plot__c is false, set value to Booking_Amount__c -->
+                            <lightning:inputField fieldName="Booking_Amount1__c" class="custom-input-field" variant="label-stacked" value="{!v.PlotRecord.Booking_Amount__c}" disabled="true"/>
+                        </aura:if>
+                        
+                    </div>
+                </div><br/>
+                <aura:if isTrue="{!v.checkBookedOrNot}"> 
+                    <!--<h3 class="slds-section__title slds-theme_shade">
+                        <span class="slds-truncate slds-p-horizontal_small" title="Section Title">Booking Amount</span>
+                    </h3><br/>
+                    <div class="slds-grid slds-wrap slds-grid_pull-padded-x-medium">
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Booking_Amount1__c" required="true" value="{!v.PlotRecord.Booking_Amount__c}" />
+                        </div>
+                    </div>
+                    <br/>-->
+                    <h3 class="slds-section__title slds-theme_shade">
+                        <span class="slds-truncate slds-p-horizontal_small" title="Section Title">First Applicant Details</span>
+                    </h3><br/>
+                    <div class="slds-grid slds-wrap slds-grid_pull-padded-x-medium">
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Salutation__c" class="custom-input-field" variant="label-stacked" required="true"/>
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="First_Applicant_Name__c" class="custom-input-field" variant="label-stacked" required="true"/>
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="First_Applicant_Photo__c" variant="label-stacked" class="custom-input-field"  />
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Date_of_Birth__c" class="custom-input-field"  variant="label-stacked" aura:id="dobField" required="true"/>
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Relation_Type__c" class="custom-input-field" variant="label-stacked" />
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Son_Daughter_Wife_of__c" class="custom-input-field"  variant="label-stacked"/>
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Nationality__c" class="custom-input-field" variant="label-stacked" onchange="{!c.handleNationalityChange}" required="true"/>
+                        </div>
+                        <aura:if isTrue="{!v.isNRI1 == true}">
+                            <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                                <lightning:inputField fieldName="Passport_PI_no__c" class="custom-input-field" variant="label-stacked"  required="true"/>
+                            </div>
+                            <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                                <lightning:inputField fieldName="OCI_No__c" class="custom-input-field" variant="label-stacked"  />
+                            </div>
+                        </aura:if>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Aadhaar_Number__c" class="custom-input-field" variant="label-stacked"  required="true"/>
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="PAN_Number__c" class="custom-input-field" variant="label-stacked"  required="true" />
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Email__c" class="custom-input-field" variant="label-stacked"  required="true"/>
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Contact_Number__c" class="custom-input-field" variant="label-stacked" required="true"/>
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Mobile_Alternate__c" class="custom-input-field" variant="label-stacked" />
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Marital_Status__c" class="custom-input-field" variant="label-stacked"  required="true"/>
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="State__c" class="custom-input-field" variant="label-stacked" required="true"/>
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="District__c" class="custom-input-field" variant="label-stacked" required="true"/>
+                        </div>
+                    </div>
+                    <br/>
+                    <h3 class="slds-section__title slds-theme_shade">
+                        <span class="slds-truncate slds-p-horizontal_small" title="Section Title">1st Applicant Address</span>
+                    </h3><br/>
+                    <div class="slds-grid slds-wrap slds-grid_pull-padded-x-medium">
+                    <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                        <lightning:inputField fieldName="Communication_Address__c" class="custom-input-field" variant="label-stacked" />
+                    </div>
+                    <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                        <lightning:inputField fieldName="Permanent_Address__c" class="custom-input-field" variant="label-stacked" required="true"/>
+                    </div>
+                    </div><br/>
+                    <h3 class="slds-section__title slds-theme_shade">
+                        <span class="slds-truncate slds-p-horizontal_small" title="Section Title">Second Applicant Details</span>
+                    </h3><br/>
+                    <div class="slds-grid slds-wrap slds-grid_pull-padded-x-medium">
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Salutation1__c" class="custom-input-field" variant="label-stacked"/>
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField aura:id="secondApplicantName" class="custom-input-field" variant="label-stacked" fieldName="Second_Applicant_Name__c" onchange="{!c.handleSecondApplicantChange}"/>
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Second_Applicant_Photo__c" class="custom-input-field"  variant="label-stacked"/>
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Date_of_Birth3__c" class="custom-input-field" variant="label-stacked" required="{!v.is2ndAppRequired}"/>
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Relation_Type1__c" class="custom-input-field"  variant="label-stacked"/>
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Son_Daughter_Wife_of1__c" class="custom-input-field"  variant="label-stacked"/>
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Nationality1__c" class="custom-input-field" variant="label-stacked" onchange="{!c.handleNationalityChange1}" required="{!v.is2ndAppRequired}"/>
+                        </div>
+                        <aura:if isTrue="{!v.isNRI2 == true}">
+                            <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                                <lightning:inputField fieldName="Passport_PI_no1__c"  class="custom-input-field" required="true" variant="label-stacked"/>
+                            </div>
+                            <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                                <lightning:inputField fieldName="OCI_No1__c" class="custom-input-field"  variant="label-stacked"/>
+                            </div>
+                        </aura:if>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Aadhaar1__c" required="{!v.is2ndAppRequired}" variant="label-stacked" class="custom-input-field" />
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="PAN_Number1__c" required="{!v.is2ndAppRequired}" variant="label-stacked" class="custom-input-field" />
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Email1__c" required="{!v.is2ndAppRequired}"  variant="label-stacked" class="custom-input-field" />
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Mobile_Number_2__c" required="{!v.is2ndAppRequired}" variant="label-stacked" class="custom-input-field" />
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Mobile_Alternate1__c"  class="custom-input-field" variant="label-stacked"/>
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Marital_Status1__c" required="{!v.is2ndAppRequired}"  variant="label-stacked" class="custom-input-field" />
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Same_address_as_1st_Applicant__c" class="custom-input-field" variant="label-stacked"/>
+                        </div>
+                        <br/>
+                    </div>
+                    <br/>
+                    
+                    <h3 class="slds-section__title slds-theme_shade">
+                        <span class="slds-truncate slds-p-horizontal_small" title="Section Title">2nd Applicant Address</span>
+                    </h3><br/>
+                    <div class="slds-grid slds-wrap slds-grid_pull-padded-x-medium">
+                    <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                        <lightning:inputField fieldName="Corresponding_Address1__c"  class="custom-input-field" variant="label-stacked"/>
+                    </div>
+                    <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                        <lightning:inputField fieldName="Permanent_Address1__c" class="custom-input-field" variant="label-stacked"/>
+                    </div>
+                    </div><br/>
+                    
+                    <!-- Gift hamper section -->
+                     <!--
+                     <h3 class="slds-section__title slds-theme_shade">
+                        <span class="slds-truncate slds-p-horizontal_small" title="Section Title"> Gift Hamper </span>
+                    </h3><br/>
+                    <div class="slds-grid slds-wrap slds-grid_pull-padded-x-medium">
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Gift_Hamper_Name__c"  class="custom-input-field" variant="label-stacked"/>
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Gift_Hamper_Value__c" class="custom-input-field" variant="label-stacked"/>
+                        </div>
+                        </div><br/>
+                    <div class="slds-grid slds-wrap slds-grid_pull-padded-x-medium">
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Gift_Hamper_Date__c"  class="custom-input-field" variant="label-stacked"/>
+                        </div>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                        </div>
+                    </div><br/>
+                -->
+                    <!-- Gift Hamper section ends-->
+                    
+                     <h3 class="slds-section__title slds-theme_shade">
+                        <span class="slds-truncate slds-p-horizontal_small" title="Section Title">Profession</span>
+                    </h3><br/>
+                    <div class="slds-grid slds-wrap slds-grid_pull-padded-x-medium">
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Organization_Type__c" aura:id="orgType" class="custom-input-field" variant="label-stacked" onchange="{!c.getChangeOrgType}" required="true"/>
+                        </div>
+                        <aura:if isTrue="{!v.showTrue == true}">
+                            <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                                <lightning:inputField fieldName="Others2__c" class="custom-input-field" variant="label-stacked"/>
+                            </div>
+                        </aura:if>
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Industry__c" aura:id="indusType" class="custom-input-field" variant="label-stacked" onchange="{!c.getChangeIndusType}" required="true"/>
+                        </div>
+                         <aura:if isTrue="{!v.showTrue2 == true}">
+                            <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                                <lightning:inputField fieldName="Others3__c" class="custom-input-field" variant="label-stacked"/>
+                            </div>
+                        </aura:if>
+                    </div><br/>
+                    <h3 class="slds-section__title slds-theme_shade">
+                        <span class="slds-truncate slds-p-horizontal_small" title="Section Title">Referral</span>
+                    </h3><br/>
+                    <div class="slds-grid slds-wrap slds-grid_pull-padded-x-medium">
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:inputField fieldName="Referred_By__c" onchange="{!c.handleReferredbyChange}" class="custom-input-field" variant="label-stacked" />
+                        </div>
+                        <aura:if isTrue="{!v.IsCustomerReferral}">
+                            <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                                <lightning:inputField fieldName="Name_of_the_Customer__c"  class="custom-input-field" variant="label-stacked"/>
+                            </div>
+                            <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                                <lightning:inputField fieldName="Project3__c"  class="custom-input-field" variant="label-stacked"/>
+                            </div>
+                            <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                                <lightning:inputField fieldName="Plot_No2__c"  class="custom-input-field" variant="label-stacked"/>
+                            </div>
+                        </aura:if>
+                        <aura:if isTrue="{!v.IsEmployeeReferral}">
+                            <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                                <lightning:inputField fieldName="Employee_Name__c"  class="custom-input-field" variant="label-stacked"/>
+                            </div>
+                            <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                                <lightning:inputField fieldName="Employee_ID__c"  class="custom-input-field" variant="label-stacked"/>
+                            </div>
+                        </aura:if>
+                    </div><br/>
+                    
+                    <!-- Channel Partner section : added 22-09-2026 starts -->
+                    <!-- Made mandatory 26-09-2026 : Yes/No must be chosen, and a code must be entered when Yes -->
+                    <!-- Yes shows the CP code; a verified code stamps By_Adissia_CP__c + Channel_Partner_Code__c. An invalid code never blocks the booking -->
+                    <h3 class="slds-section__title slds-theme_shade">
+                        <span class="slds-truncate slds-p-horizontal_small" title="Section Title">Channel Partner</span>
+                    </h3><br/>
+                    <div class="slds-grid slds-wrap slds-grid_pull-padded-x-medium">
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:radioGroup name="byChannelPartner" label="By Channel Partner?" required="true" options="{!v.channelPartnerOptions}" value="{!v.byChannelPartner}" onchange="{!c.handleChannelPartnerToggle}"/>
+                        </div>
+                        <aura:if isTrue="{!v.byChannelPartner == 'Yes'}">
+                            <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                                <lightning:input name="channelPartnerCode" label="Channel Partner Code" required="true" value="{!v.channelPartnerCode}" onchange="{!c.handleChannelPartnerCodeChange}" onblur="{!c.handleChannelPartnerCodeBlur}"/>
+                                <aura:if isTrue="{!v.isVerifyingChannelPartner}">
+                                    <p class="slds-text-body_small slds-m-top_x-small">Verifying...</p>
+                                </aura:if>
+                                <aura:if isTrue="{!not(empty(v.channelPartnerName))}">
+                                    <p class="slds-text-body_small slds-m-top_x-small slds-text-color_success">Channel Partner: {!v.channelPartnerName}</p>
+                                </aura:if>
+                                <aura:if isTrue="{!not(empty(v.channelPartnerError))}">
+                                    <p class="slds-text-body_small slds-m-top_x-small slds-text-color_error">{!v.channelPartnerError} The booking will be saved without Channel Partner.</p>
+                                </aura:if>
+                            </div>
+                        </aura:if>
+                    </div><br/>
+                    <!-- Channel Partner section : added 22-09-2026 ends -->
+                    
+                    <!-- Payment Schedule Form section -->
+                    <h3 class="slds-section__title slds-theme_shade">
+                        <span class="slds-truncate slds-p-horizontal_small" title="Section Title">Payment Schedule Form</span>
+                    </h3><br/>
+                    <div class="slds-grid slds-wrap slds-grid_pull-padded-x-medium">
+                        <div class="slds-size_4-of-8 slds-p-horizontal_small">
+                            <lightning:input aura:id="paymentScheduleFile" type="file" name="paymentScheduleFile" label="Upload Payment Schedule Form" accept=".pdf,.jpg,.jpeg,.png" required="true" onchange="{!c.handlePaymentScheduleFileChange}"/>
+                            <aura:if isTrue="{!v.paymentScheduleFileName != ''}">
+                                <p class="slds-text-body_small slds-m-top_x-small">Selected: {!v.paymentScheduleFileName}</p>
+                            </aura:if>
+                        </div>
+                    </div><br/>
+                    <!-- Payment Schedule Form section ends -->
+                    
+                    <lightning:button type="submit" label="Submit" class="slds-button slds-button_brand slds-float_right" disabled="{!v.buttonDisable}"/>
+                </aura:if>
+                <aura:if isTrue="{!!v.checkBookedOrNot}"> 
+                    <div class="slds-text-heading_medium slds-text-align_center">
+                        THIS BOOKING IS EITHER BOOKED/BLOCKED/NOT AVAILABLE FOR SELLING
+                    </div>
+                </aura:if>
+                <br/>
+                <br/>
+                
+            </lightning:recordEditForm>
+        </div>
+    </aura:if> 
+    <div>
+        <aura:if isTrue="{!v.spinner}">
+            <lightning:spinner class="spins" size="large" variant="brand" alternativeText="Loading" />
+        </aura:if>
+    </div>
+</aura:component>
